@@ -19,13 +19,19 @@ import { MonitorsModule } from './monitors/monitors.module.js';
         const dbConfig = configService.get<DatabaseConfig>('database');
         const nodeEnv = configService.get<string>('nodeEnv');
 
+        const isCloudDb =
+          process.env.DB_SSL === 'true' ||
+          (dbConfig?.url?.includes('render.com') ?? false) ||
+          (dbConfig?.url?.includes('neon.tech') ?? false);
+
         if (dbConfig?.url) {
           return {
             type: 'postgres',
             url: dbConfig.url,
             entities: [Monitor, PingLog],
-            synchronize: nodeEnv !== 'production', // Auto-sync schema in dev
+            synchronize: process.env.DB_SYNC === 'true' || nodeEnv !== 'production',
             autoLoadEntities: true,
+            ssl: isCloudDb ? { rejectUnauthorized: false } : false,
           };
         }
 
@@ -37,8 +43,9 @@ import { MonitorsModule } from './monitors/monitors.module.js';
           password: dbConfig?.password || 'postgres',
           database: dbConfig?.database || 'cloudpulse',
           entities: [Monitor, PingLog],
-          synchronize: nodeEnv !== 'production',
+          synchronize: process.env.DB_SYNC === 'true' || nodeEnv !== 'production',
           autoLoadEntities: true,
+          ssl: isCloudDb ? { rejectUnauthorized: false } : false,
         };
       },
     }),

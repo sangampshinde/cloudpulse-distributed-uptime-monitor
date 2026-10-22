@@ -1,0 +1,50 @@
+services:
+  # ==============================================================================
+  # 1. Backend API Service (NestJS Container)
+  # ==============================================================================
+  - type: web
+    name: cloudpulse-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: NODE_ENV
+        value: production
+      - key: DB_SYNC
+        value: "true"
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cloudpulse-db
+          property: connectionString
+
+  # ==============================================================================
+  # 2. Frontend Dashboard Service (Next.js Standalone Container)
+  # ==============================================================================
+  - type: web
+    name: cloudpulse-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+
+databases:
+  # ==============================================================================
+  # 3. PostgreSQL Database (Free Managed DB on Render)
+  # ==============================================================================
+  - name: cloudpulse-db
+    databaseName: cloudpulse
+    user: postgres
+    plan: free
+    region: oregon
