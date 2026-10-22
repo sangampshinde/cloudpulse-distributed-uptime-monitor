@@ -45,6 +45,6 @@ databases:
   # ==============================================================================
   - name: cloudpulse-db
     databaseName: cloudpulse
-    user: postgres
+    user: cloudpulse_user
     plan: free
     region: oregon
