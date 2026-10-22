@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Monitor, MonitorStatus } from '../database/entities/monitor.entity.js';
@@ -7,7 +7,7 @@ import { CreateMonitorDto } from './dto/create-monitor.dto.js';
 import { UpdateMonitorDto } from './dto/update-monitor.dto.js';
 
 @Injectable()
-export class MonitorsService {
+export class MonitorsService implements OnModuleInit {
   private readonly logger = new Logger(MonitorsService.name);
 
   constructor(
@@ -16,6 +16,28 @@ export class MonitorsService {
     @InjectRepository(PingLog)
     private readonly pingLogRepo: Repository<PingLog>,
   ) {}
+
+  async onModuleInit() {
+    try {
+      const count = await this.monitorRepo.count();
+      if (count === 0) {
+        this.logger.log('🌱 Database is empty. Auto-seeding initial monitors...');
+        const seedMonitors = [
+          { name: 'Sangam Portfolio (Live)', url: 'https://sangam-shinde-portfolio.netlify.app', method: 'GET', checkInterval: 30 },
+          { name: 'GitHub Developer Profile', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 30 },
+          { name: 'AI SaaS Billing Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
+          { name: 'ChefAI Meal Planner App', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
+          { name: 'AI Sales CRM Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
+        ];
+        for (const m of seedMonitors) {
+          await this.create(m);
+        }
+        this.logger.log('✅ Initial monitors auto-seeded successfully.');
+      }
+    } catch (err: any) {
+      this.logger.warn(`Auto-seed deferred: ${err.message}`);
+    }
+  }
 
   async create(createDto: CreateMonitorDto): Promise<Monitor> {
     const monitor = this.monitorRepo.create({
