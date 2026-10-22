@@ -38,6 +38,11 @@ services:
         value: 3000
       - key: NODE_ENV
         value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: cloudpulse-backend
+          property: host
 
 databases:
   # ==============================================================================

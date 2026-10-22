@@ -34,8 +34,21 @@ export interface SystemSummary {
   avgLatency: number;
 }
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+function getApiBase(): string {
+  let raw = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!raw || raw === '') {
+    return 'http://localhost:4000/api/v1';
+  }
+  if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
+    raw = `https://${raw}`;
+  }
+  if (!raw.endsWith('/api/v1')) {
+    raw = raw.replace(/\/+$/, '') + '/api/v1';
+  }
+  return raw;
+}
+
+const API_BASE = getApiBase();
 
 export async function fetchSummary(): Promise<SystemSummary> {
   const res = await fetch(`${API_BASE}/monitors/summary`, { cache: 'no-store' });
