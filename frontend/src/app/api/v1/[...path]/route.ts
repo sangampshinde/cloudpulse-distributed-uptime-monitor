@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic";
 async function proxyRequest(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
   const rawBackend = (
-    process.env.BACKEND_INTERNAL_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.BACKEND_URL ||
     "http://localhost:4000"
@@ -13,11 +12,7 @@ async function proxyRequest(req: NextRequest, { params }: { params: Promise<{ pa
 
   let target = rawBackend;
   if (!target.startsWith("http://") && !target.startsWith("https://")) {
-    if (!target.includes(".") || target.endsWith(".internal")) {
-      target = target.includes(":") ? `http://${target}` : `http://${target}:4000`;
-    } else {
-      target = `https://${target}`;
-    }
+    target = `https://${target}`;
   }
 
   const cleanTarget = target.replace(/\/api\/v1\/?$/, "");
@@ -57,6 +52,7 @@ async function proxyRequest(req: NextRequest, { params }: { params: Promise<{ pa
         cause: err.cause ? (err.cause.message || String(err.cause)) : undefined,
         code: err.cause?.code || err.code,
         targetUrl,
+        rawBackend,
       },
       { status: 502 }
     );
