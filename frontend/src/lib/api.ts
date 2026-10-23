@@ -36,6 +36,12 @@ export interface SystemSummary {
 
 function getApiBase(): string {
   let raw = process.env.NEXT_PUBLIC_API_URL?.trim();
+  // If running in browser and deployed on remote (e.g. Render) while NEXT_PUBLIC_API_URL defaulted to localhost:
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    if (!raw || raw === '' || raw.includes('localhost') || raw.includes('127.0.0.1')) {
+      return '/api/v1';
+    }
+  }
   if (!raw || raw === '') {
     return 'http://localhost:4000/api/v1';
   }
@@ -49,6 +55,38 @@ function getApiBase(): string {
 }
 
 const API_BASE = getApiBase();
+
+export async function seedMonitors(): Promise<Monitor[]> {
+  try {
+    const res = await fetch(`${API_BASE}/monitors/seed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.ok) {
+      return res.json();
+    }
+  } catch {
+    // fallback below if backend route is not yet deployed
+  }
+
+  const demos = [
+    { name: 'Sangam Portfolio (Live)', url: 'https://sangam-shinde-portfolio.netlify.app', method: 'GET', checkInterval: 30 },
+    { name: 'GitHub Developer Profile', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 30 },
+    { name: 'AI SaaS Billing Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
+    { name: 'ChefAI Meal Planner App', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
+    { name: 'AI Sales CRM Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
+  ];
+  const results: Monitor[] = [];
+  for (const d of demos) {
+    try {
+      const item = await createMonitor(d);
+      results.push(item);
+    } catch {
+      // ignore individual errors or duplicates
+    }
+  }
+  return results;
+}
 
 export async function fetchSummary(): Promise<SystemSummary> {
   const res = await fetch(`${API_BASE}/monitors/summary`, { cache: 'no-store' });

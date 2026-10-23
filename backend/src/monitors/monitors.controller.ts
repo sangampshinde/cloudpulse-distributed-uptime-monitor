@@ -24,6 +24,12 @@ export class MonitorsController {
     return this.monitorsService.create(createMonitorDto);
   }
 
+  @Post('seed')
+  @HttpCode(HttpStatus.OK)
+  seed() {
+    return this.monitorsService.seedDefaults();
+  }
+
   @Get()
   findAll() {
     return this.monitorsService.findAll();

@@ -12,6 +12,7 @@ import {
   deleteMonitor,
   triggerPing,
   checkBackendHealth,
+  seedMonitors,
 } from "../lib/api";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ export default function Dashboard() {
   });
   const [backendStatus, setBackendStatus] = useState<"connected" | "connecting" | "offline">("connecting");
   const [loading, setLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [probingId, setProbingId] = useState<string | null>(null);
 
   // Modal State
@@ -60,6 +62,7 @@ export default function Dashboard() {
   const [inspectLoading, setInspectLoading] = useState(false);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
     try {
       const health = await checkBackendHealth();
       if (health.status === "ok") {
@@ -150,17 +153,15 @@ export default function Dashboard() {
   };
 
   const handleSeedResume = async () => {
-    const demos = [
-      { name: "Sangam Portfolio (Live)", url: "https://sangam-shinde-portfolio.netlify.app", method: "GET", checkInterval: 30 },
-      { name: "GitHub Developer Profile", url: "https://github.com/sangampshinde", method: "GET", checkInterval: 30 },
-      { name: "AI SaaS Billing Platform", url: "https://github.com/sangampshinde", method: "GET", checkInterval: 60 },
-      { name: "ChefAI Meal Planner App", url: "https://github.com/sangampshinde", method: "GET", checkInterval: 60 },
-      { name: "AI Sales CRM Platform", url: "https://github.com/sangampshinde", method: "GET", checkInterval: 60 },
-    ];
-    for (const d of demos) {
-      await createMonitor(d).catch(() => null);
+    setIsSeeding(true);
+    try {
+      await seedMonitors();
+      await loadData();
+    } catch (err: any) {
+      alert(`Could not load default services: ${err.message || "Backend may be sleeping"}`);
+    } finally {
+      setIsSeeding(false);
     }
-    await loadData();
   };
 
   return (
@@ -207,6 +208,28 @@ export default function Dashboard() {
           </Button>
         </div>
       </header>
+
+      {/* Render Cold-Start Alert Banner */}
+      {backendStatus !== "connected" && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs sm:text-sm">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
+            <span>
+              <strong>Render Backend Cold Start:</strong> On Render Free Tier, backend services sleep after 15 min of inactivity. Waking up can take 45–75 seconds.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => loadData()}
+            disabled={loading}
+            className="border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-xs shrink-0 h-7 gap-1"
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+            {loading ? "Waking Up..." : "Wake & Retry"}
+          </Button>
+        </div>
+      )}
 
       {/* Metric Stat Cards Grid */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -272,13 +295,14 @@ export default function Dashboard() {
             <CardDescription>Live health checks across microservices, databases, and APIs</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={loadData} disabled={loading} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={() => loadData()} disabled={loading} className="gap-1.5">
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-              Sync
+              {loading ? "Syncing..." : "Sync"}
             </Button>
             {monitors.length === 0 && (
-              <Button variant="secondary" size="sm" onClick={handleSeedResume}>
-                Load Resume Services
+              <Button variant="secondary" size="sm" onClick={handleSeedResume} disabled={isSeeding || loading} className="gap-1.5">
+                {isSeeding && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                {isSeeding ? "Seeding..." : "Load Resume Services"}
               </Button>
             )}
           </div>
@@ -288,8 +312,9 @@ export default function Dashboard() {
             <div className="text-center py-12 space-y-3">
               <Layers className="h-10 w-10 text-slate-600 mx-auto" />
               <p className="text-slate-400">No monitoring targets registered yet.</p>
-              <Button variant="secondary" size="sm" onClick={handleSeedResume}>
-                Populate Sangam&apos;s Portfolio Services
+              <Button variant="secondary" size="sm" onClick={handleSeedResume} disabled={isSeeding || loading} className="gap-1.5">
+                {isSeeding && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                {isSeeding ? "Populating Targets..." : "Populate Sangam's Portfolio Services"}
               </Button>
             </div>
           ) : (

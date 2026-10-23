@@ -18,25 +18,47 @@ export class MonitorsService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    try {
-      const count = await this.monitorRepo.count();
-      if (count === 0) {
-        this.logger.log('🌱 Database is empty. Auto-seeding initial monitors...');
-        const seedMonitors = [
-          { name: 'Sangam Portfolio (Live)', url: 'https://sangam-shinde-portfolio.netlify.app', method: 'GET', checkInterval: 30 },
-          { name: 'GitHub Developer Profile', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 30 },
-          { name: 'AI SaaS Billing Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
-          { name: 'ChefAI Meal Planner App', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
-          { name: 'AI Sales CRM Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
-        ];
-        for (const m of seedMonitors) {
-          await this.create(m);
+    this.seedWithRetry();
+  }
+
+  async seedWithRetry(retries = 6, delayMs = 3000): Promise<void> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const count = await this.monitorRepo.count();
+        if (count === 0) {
+          this.logger.log('🌱 Database is empty. Auto-seeding initial monitors...');
+          await this.seedDefaults();
+          this.logger.log('✅ Initial monitors auto-seeded successfully.');
+        } else {
+          this.logger.log(`ℹ️ Database already has ${count} monitors. Auto-seed skipped.`);
         }
-        this.logger.log('✅ Initial monitors auto-seeded successfully.');
+        return;
+      } catch (err: any) {
+        this.logger.warn(`Auto-seed attempt ${attempt}/${retries} deferred: ${err.message}`);
+        if (attempt < retries) {
+          await new Promise((res) => setTimeout(res, delayMs));
+        }
       }
-    } catch (err: any) {
-      this.logger.warn(`Auto-seed deferred: ${err.message}`);
     }
+  }
+
+  async seedDefaults(): Promise<Monitor[]> {
+    const seedMonitors = [
+      { name: 'Sangam Portfolio (Live)', url: 'https://sangam-shinde-portfolio.netlify.app', method: 'GET', checkInterval: 30 },
+      { name: 'GitHub Developer Profile', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 30 },
+      { name: 'AI SaaS Billing Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
+      { name: 'ChefAI Meal Planner App', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
+      { name: 'AI Sales CRM Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
+    ];
+    const created: Monitor[] = [];
+    for (const m of seedMonitors) {
+      const existing = await this.monitorRepo.findOne({ where: { name: m.name } });
+      if (!existing) {
+        const saved = await this.create(m);
+        created.push(saved);
+      }
+    }
+    return created;
   }
 
   async create(createDto: CreateMonitorDto): Promise<Monitor> {
