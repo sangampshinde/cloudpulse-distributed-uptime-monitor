@@ -41,10 +41,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: cloudpulse-backend
-          property: host
+        value: "https://cloudpulse-backend-opqz.onrender.com/api/v1"
 
 databases:
   # ==============================================================================

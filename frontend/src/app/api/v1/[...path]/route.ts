@@ -11,6 +11,9 @@ async function proxyRequest(req: NextRequest, { params }: { params: Promise<{ pa
   ).trim();
 
   let target = rawBackend;
+  if (!target.includes(".") && !target.includes("localhost")) {
+    target = `${target}.onrender.com`;
+  }
   if (!target.startsWith("http://") && !target.startsWith("https://")) {
     target = `https://${target}`;
   }
