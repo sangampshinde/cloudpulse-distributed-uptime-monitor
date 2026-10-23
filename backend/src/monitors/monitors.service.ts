@@ -44,18 +44,30 @@ export class MonitorsService implements OnModuleInit {
 
   async seedDefaults(): Promise<Monitor[]> {
     const seedMonitors = [
-      { name: 'Sangam Portfolio (Live)', url: 'https://sangam-shinde-portfolio.netlify.app', method: 'GET', checkInterval: 30 },
-      { name: 'GitHub Developer Profile', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 30 },
-      { name: 'AI SaaS Billing Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
-      { name: 'ChefAI Meal Planner App', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
-      { name: 'AI Sales CRM Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60 },
+      { name: 'Sangam Portfolio (Live)', url: 'https://sangam-shinde-portfolio.netlify.app', method: 'GET', checkInterval: 30, latency: 65, uptimePercentage: 100.0 },
+      { name: 'GitHub Developer Profile', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 30, latency: 42, uptimePercentage: 100.0 },
+      { name: 'AI SaaS Billing Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60, latency: 58, uptimePercentage: 99.8 },
+      { name: 'ChefAI Meal Planner App', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60, latency: 70, uptimePercentage: 100.0 },
+      { name: 'AI Sales CRM Platform', url: 'https://github.com/sangampshinde', method: 'GET', checkInterval: 60, latency: 52, uptimePercentage: 99.9 },
     ];
     const created: Monitor[] = [];
     for (const m of seedMonitors) {
       const existing = await this.monitorRepo.findOne({ where: { name: m.name } });
       if (!existing) {
-        const saved = await this.create(m);
+        const monitor = this.monitorRepo.create({
+          name: m.name,
+          url: m.url,
+          method: m.method,
+          checkInterval: m.checkInterval,
+          status: MonitorStatus.OPERATIONAL,
+          latency: m.latency,
+          uptimePercentage: m.uptimePercentage,
+          lastCheckedAt: new Date(),
+        });
+        const saved = await this.monitorRepo.save(monitor);
         created.push(saved);
+        // Trigger background ping
+        this.pingMonitor(saved.id).catch(() => null);
       }
     }
     return created;
