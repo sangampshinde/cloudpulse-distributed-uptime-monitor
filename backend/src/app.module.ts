@@ -21,8 +21,10 @@ import { MonitorsModule } from './monitors/monitors.module.js';
 
         const isCloudDb =
           process.env.DB_SSL === 'true' ||
-          (dbConfig?.url?.includes('render.com') ?? false) ||
-          (dbConfig?.url?.includes('neon.tech') ?? false);
+          nodeEnv === 'production' ||
+          (dbConfig?.url?.includes('render') ?? false) ||
+          (dbConfig?.url?.includes('neon') ?? false) ||
+          (dbConfig?.url?.includes('dpg-') ?? false);
 
         if (dbConfig?.url) {
           return {
