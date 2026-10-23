@@ -36,8 +36,8 @@ async function bootstrap() {
   // 4. DevOps Standard: Graceful container shutdown on SIGTERM / SIGINT
   app.enableShutdownHooks();
 
-  await app.listen(port);
-  logger.log(`🚀 CloudPulse Backend service is running on port: ${port}`);
+  await app.listen(port, '0.0.0.0');
+  logger.log(`🚀 CloudPulse Backend service is running on port: ${port} (0.0.0.0)`);
   logger.log(`📊 Healthcheck endpoint: http://localhost:${port}/api/v1/health`);
   logger.log(`🔍 Monitors API endpoint: http://localhost:${port}/api/v1/monitors`);
 }

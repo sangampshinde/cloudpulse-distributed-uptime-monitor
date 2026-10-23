@@ -54,6 +54,8 @@ async function proxyRequest(req: NextRequest, { params }: { params: Promise<{ pa
       {
         error: "Backend proxy error",
         message: err.message,
+        cause: err.cause ? (err.cause.message || String(err.cause)) : undefined,
+        code: err.cause?.code || err.code,
         targetUrl,
       },
       { status: 502 }
