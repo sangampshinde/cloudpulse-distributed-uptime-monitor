@@ -31,13 +31,22 @@ export class MonitorsController {
   }
 
   @Get()
-  findAll() {
-    return this.monitorsService.findAll();
+  async findAll() {
+    let monitors = await this.monitorsService.findAll();
+    if (monitors.length === 0) {
+      await this.monitorsService.seedDefaults();
+      monitors = await this.monitorsService.findAll();
+    }
+    return monitors;
   }
 
   @Get('summary')
   async getSummary() {
-    const monitors = await this.monitorsService.findAll();
+    let monitors = await this.monitorsService.findAll();
+    if (monitors.length === 0) {
+      await this.monitorsService.seedDefaults();
+      monitors = await this.monitorsService.findAll();
+    }
     const total = monitors.length;
     const operational = monitors.filter((m) => m.status === 'OPERATIONAL').length;
     const degraded = monitors.filter((m) => m.status === 'DEGRADED').length;
